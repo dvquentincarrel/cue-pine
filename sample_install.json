@@ -1,0 +1,17 @@
+{
+    "dependencies": [
+        "zellij"
+    ],
+    "installation": {
+        "config": {
+            "dir": "$HOME/.config/zellij",
+            "files": ["config.kdl"]
+        },
+        "script": {
+            "dir": "$HOME/.config/bash/setup",
+            "renamed_files": [
+                {"src": "auto_zellij.sh", "dest": "050_auto_zellij"}
+            ]
+        }
+    }
+}
