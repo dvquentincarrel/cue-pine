@@ -4,6 +4,7 @@ import json
 import argparse
 import os
 import shutil
+import subprocess
 from urllib import request
 
 parser = argparse.ArgumentParser(description="(un)install the files", epilog="Just run the script to install the files. Add the '-u' flag to uninstall the files instead")
@@ -38,13 +39,16 @@ if dependencies and not args.uninstall:
 action = "uninstalling" if args.uninstall else "installing"
 
 def process(src, dest):
-    """Based on the mode, install/uninstall file if it does/does not exist"""
+    """Based on the mode, install/uninstall file if it does/does not exist.
+    Supports files, urls, and git repos"""
     exists = os.path.exists(dest)
     if exists and args.uninstall:
         print(f"    {dest}")
         os.remove(dest)
     elif not (exists or args.uninstall):
-        if src.startswith('http'):
+        if src.endswith('.git'):
+            callback = lambda src, dest: subprocess.run(["git", "clone", src, dest])
+        elif src.startswith('http'):
             callback = request.urlretrieve
         else:
             callback = os.symlink
