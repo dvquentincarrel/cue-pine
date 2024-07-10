@@ -4,6 +4,7 @@ import json
 import argparse
 import os
 import shutil
+from urllib import request
 
 parser = argparse.ArgumentParser(description="(un)install the files", epilog="Just run the script to install the files. Add the '-u' flag to uninstall the files instead")
 parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstalls the files instead")
@@ -43,8 +44,13 @@ def process(src, dest):
         print(f"    {dest}")
         os.remove(dest)
     elif not (exists or args.uninstall):
+        if src.startswith('http'):
+            callback = request.urlretrieve
+        else:
+            callback = os.symlink
+            src = f"{os.getcwd()}/{src}"
         print(f"    {src} => {dest}")
-        os.symlink(f"{src}", dest)
+        callback(f"{src}", dest)
 
 # Either create or delete symlinks for the files given in the config
 for name, content in config['installation'].items():
@@ -60,9 +66,9 @@ for name, content in config['installation'].items():
         else:
             final_file = file
 
-        process(f"{os.getcwd()}/{file}", f"{dir}/{final_file}")
+        process(f"{file}", f"{dir}/{final_file}")
 
     for mapping in content.get('renamed_files', []):
-        process(f"{os.getcwd()}/{mapping['src']}", f"{dir}/{mapping['dest']}")
+        process(f"{mapping['src']}", f"{dir}/{mapping['dest']}")
 
     print()
