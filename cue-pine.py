@@ -29,9 +29,11 @@ else:
 # Args parsing
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
+    prog="cue-pine",
     description="(un)install the files",
     epilog="Just run the script to install the files.\nAdd the '-u' flag to uninstall the files instead.",
 )
+parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.0")
 parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstalls the files instead")
 parser.add_argument("--explain-config", action="store_true", help="Details the capabilities and uses of a config file")
 parser.add_argument("--config-name", default="install.json", help="Name of the config files. ('install.json' by default)")

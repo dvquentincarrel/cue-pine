@@ -1,0 +1,13 @@
+{
+    "dependencies": [
+        "python"
+    ],
+    "installation": {
+        "script": {
+            "dir": "$HOME/.local/bin",
+            "renamed_files": [
+                {"src": "cue-pine.py", "dest": "cue-pine"}
+            ]
+        }
+    }
+}
