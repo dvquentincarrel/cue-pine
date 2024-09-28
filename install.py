@@ -7,6 +7,26 @@ import shutil
 import subprocess
 from urllib import request
 
+# Directories to prune if subdirectories are crawled for config files
+EXCLUDED_DIRS=['.git', 'node_modules', 'venv']
+FORCE_COLOR = False
+
+# Colored output
+color_names = ["BK", "RD", "GR", "YL", "BL", "PR", "CY", "WH"]
+modifiers_map = {'': 0, 'B': 10, 'S': 60, 'SB': 70}
+if FORCE_COLOR or sys.stderr.isatty():
+    ST, BD, FT, IT, UL = [lambda msg, cd=code: f"\x1b[{cd}m{msg}\x1b[m" for code in range(5)]
+    for prefix, modifier in modifiers_map.items():
+        for code, color in enumerate(color_names):
+            color_code = code+modifier+30
+            globals()[f"{prefix}{color}"] = lambda msg, cc=color_code: f"\x1b[{cc}m{msg}\x1b[m"
+else:
+    ST, BD, FT, IT, UL = (lambda x:x,) * 5
+    for prefix in modifiers_map:
+        for color in color_names:
+            globals()[f"{prefix}{color}"] = ST
+
+# Args parsing
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     description="(un)install the files",
@@ -14,10 +34,11 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstalls the files instead")
 parser.add_argument("--explain-config", action="store_true", help="Details the capabilities and uses of a config file")
-parser.add_argument("--strict-pre", action="store_true", help="WIP: Abort installation if any of the pre scripts produce an error")
+parser.add_argument("--config-name", default="install.json", help="Name of the config files. ('install.json' by default)")
+parser.add_argument("--strict-pre", action="store_true", help="Abort installation if any of the pre scripts produce an error")
+parser.add_argument("--no-sublevel", action="store_true", help="Don't attempt to process config files found in sub-directories")
 parser.add_argument("-c", "--check-dependencies", action="store_true", help="Only check for dependencies and exit")
 args = parser.parse_args()
-
 if args.explain_config:
     print('\n'.join(
         [
@@ -42,7 +63,7 @@ if args.explain_config:
             "  The 'src' key is the path to the file to install, and 'dest' is its new name inside of the",
             "  directory given in 'dir'.",
             "",
-            "\x1b[21mExample:\x1b[m",
+            UL("Example:"),
             '{',
             '  "dependencies": ["python", "foo", "foobar"],',
             '  "pre": ["foo --bar", "foo --baz"],',
@@ -64,78 +85,127 @@ if args.explain_config:
     ]), file=sys.stderr)
     exit(0)
 
-with open("install.json", "r") as cfg_file:
-    config = json.load(cfg_file)
+def process_config_file(file_path: str, cwd='.') -> None:
+    """Extracts and use informations from a config file to do the installation
+    Changes cwd during its execution, reverts changes at the end"""
+    original_pos = os.getcwd()
+    os.chdir(cwd)
 
-# Check dependencies
-dependencies = config.get("dependencies", [])
-if dependencies and not args.uninstall:
-    all_deps_found = True
-    print("\x1b[1mDependencies check:\x1b[0m") # ]]
-    for dependency in dependencies:
-        print(f"    {dependency} ", end="")
-        if shutil.which(dependency):
-            print("\x1b[32mOK\x1b[0m") # ]]
-        else:
-            print("\x1b[31mnot found\x1b[0m") # ]]
-            all_deps_found = False
+    # formatted like "===== cwd/file_path ====="
+    side_size = os.get_terminal_size().columns - len(file_path) - 1 - len(cwd) - 2
+    lhs = "="  * (side_size // 2)
+    rhs = "=" * (side_size - len(lhs)) # Resolves issues if number if odd
+
+    print("{0} {2} {1}".format(lhs, rhs, SCY(f"{cwd}/{file_path}")))
+    with open(file_path, "r") as cfg_file:
+        config = json.load(cfg_file)
+
+    # Check dependencies
+    dependencies = config.get("dependencies", [])
+    if dependencies and not args.uninstall:
+        all_deps_found = True
+        print(UL("Dependencies check:"))
+        for dependency in dependencies:
+            print(f"    {dependency} ", end="")
+            if shutil.which(dependency):
+                print(GR("OK"))
+            else:
+                print(RD("not found"))
+                all_deps_found = False
+
+        print() # Newline
+        if args.check_dependencies:
+            exit(0)
+        elif not all_deps_found:
+            print("Not all dependencies met. Aborting.")
+            exit(1)
+
+    action = "Uninstallation:" if args.uninstall else "Installation:"
+
+    def process(src, dest) -> bool:
+        """Based on the mode, install/uninstall file if it does/does not exist.
+        Supports files, urls, and git repos
+
+        :return: True if something was done, False otherwise
+        """
+        exists = os.path.exists(dest)
+        done_something = False
+        if exists and args.uninstall:
+            print(f"        {dest}")
+            os.remove(dest)
+            done_something = True
+        elif not (exists or args.uninstall):
+            done_something = True
+            if src.endswith('.git'):
+                callback = lambda src, dest: subprocess.run(["git", "clone", src, dest])
+            elif src.startswith('http'):
+                callback = request.urlretrieve
+            else:
+                callback = os.symlink
+                src = f"{os.getcwd()}/{src}"
+            print(f"        {src} => {dest}")
+            callback(f"{src}", dest)
+        return done_something
+
+    # Pre-processing
+    if 'pre' in config:
+        print(UL('Pre-scripts:'))
+        for i, command in enumerate(config['pre']):
+            print(f'    running pre script #{i}')
+            e_code = subprocess.call(command, shell=True)
+            if args.strict_pre and e_code:
+                print(f"\n{RD('Error')}: exit code '{YL(e_code)}' was produced by the command '{SCY(command)}'", file=sys.stderr)
+                exit(1)
+        print()
+
+    # Either create or delete symlinks for the files given in the config
+    print(UL(action))
+    for name, content in config['installation'].items():
+        dir = (content['dir'].replace('$HOME', os.getenv('HOME')))
+        done_something = False
+        print(f"    {BD(name)}:")
+
+        if not (os.path.exists(dir) or args.uninstall):
+            os.makedirs(dir)
+
+        for file in content.get('files', []):
+            if content.get('strip_ext'):
+                final_file = file.rsplit('.', 1)[0]
+            else:
+                final_file = file
+
+            done_something = process(f"{file}", f"{dir}/{final_file}") or done_something
+
+        for mapping in content.get('renamed_files', []):
+            done_something = process(f"{mapping['src']}", f"{dir}/{mapping['dest']}") or done_something
+
+        if not done_something:
+            print(YL("        Nothing done"))
 
     print()
-    if args.check_dependencies:
-        exit(0)
-    elif not all_deps_found:
-        print("Not all dependencies met. Aborting.")
-        exit(1)
 
+    # Post-processing
+    if 'post' in config:
+        print(UL('Post-scripts:'))
+        for i, command in enumerate(config['post']):
+            print(f'    running post script #{i}')
+            e_code = subprocess.call(command, shell=True)
+        print()
 
-action = "uninstalling" if args.uninstall else "installing"
+    os.chdir(original_pos)
 
-def process(src, dest):
-    """Based on the mode, install/uninstall file if it does/does not exist.
-    Supports files, urls, and git repos"""
-    exists = os.path.exists(dest)
-    if exists and args.uninstall:
-        print(f"    {dest}")
-        os.remove(dest)
-    elif not (exists or args.uninstall):
-        if src.endswith('.git'):
-            callback = lambda src, dest: subprocess.run(["git", "clone", src, dest])
-        elif src.startswith('http'):
-            callback = request.urlretrieve
-        else:
-            callback = os.symlink
-            src = f"{os.getcwd()}/{src}"
-        print(f"    {src} => {dest}")
-        callback(f"{src}", dest)
+process_config_file(args.config_name, '.')
 
-# Pre-processing
-for command in config.get('pre', []):
-    e_code = subprocess.call(command, shell=True)
-    if args.strict_pre and e_code:
-        print(f"\x1b[31Error\x1b[m: exit code '{e_code}' was produced by the command'{command}'", file=sys.stderr)
-        exit(1)
+# Process config files found in sub-directories
+if not args.no_sublevel:
+    for cwd, subdirs, files in os.walk('.'):
+        # Prune unwanted dirs
+        if subdirs:
+            for undesirable in EXCLUDED_DIRS:
+                if undesirable in subdirs:
+                    subdirs.remove(undesirable)
+        if cwd == '.': # Already processed
+            continue
 
-# Either create or delete symlinks for the files given in the config
-for name, content in config['installation'].items():
-    dir = (content['dir'].replace('$HOME', os.getenv('HOME')))
-    print(f"\x1b[1m{action} {name}:\x1b[0m") # ]]
-
-    if not (os.path.exists(dir) or args.uninstall):
-        os.mkdir(dir)
-
-    for file in content.get('files', []):
-        if content.get('strip_ext'):
-            final_file = file.rsplit('.', 1)[0]
-        else:
-            final_file = file
-
-        process(f"{file}", f"{dir}/{final_file}")
-
-    for mapping in content.get('renamed_files', []):
-        process(f"{mapping['src']}", f"{dir}/{mapping['dest']}")
-
-    print()
-
-# Post-processing
-for command in config.get('post', []):
-    subprocess.run(command, shell=True)
+        if args.config_name in files:
+            process_config_file(args.config_name, cwd)
