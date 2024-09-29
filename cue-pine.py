@@ -113,7 +113,7 @@ def check_dependencies(config: object) -> None:
 
     print() # Newline
     if args.check_dependencies:
-        exit(0)
+        return
     elif not all_deps_found:
         print("Not all dependencies met. Aborting.")
         exit(1)
@@ -232,10 +232,11 @@ def process_config_file(file_path: str, cwd='.') -> None:
     if not args.uninstall:
         check_dependencies(config)
 
-    # Pre-processing, processing, post-processing
-    alt_process('pre', config)
-    process_installation(config)
-    alt_process('post', config)
+    if not args.check_dependencies:
+        # Pre-processing, processing, post-processing
+        alt_process('pre', config)
+        process_installation(config)
+        alt_process('post', config)
 
     os.chdir(original_pos)
 
