@@ -65,6 +65,7 @@ if args.explain_config:
             "3) 'renamed_files', (instead of files), which is a list of dicts with a 'src' and 'dest' key.",
             "  The 'src' key is the path to the file to install, and 'dest' is its new name inside of the",
             "  directory given in 'dir'.",
+            "4) 'strip_ext', a boolean that if true, causes file extensions to be stripped from 'files' entry.",
             "",
             UL("Example:"),
             '{',
