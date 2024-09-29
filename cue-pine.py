@@ -33,7 +33,7 @@ parser = argparse.ArgumentParser(
     description="(un)install the files",
     epilog="Just run the script to install the files.\nAdd the '-u' flag to uninstall the files instead.",
 )
-parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.1.1")
+parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.1.2")
 parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstalls the files instead")
 parser.add_argument("-d", "--dry-run", action="store_true", help="Shows what would be done, without actually doing it")
 parser.add_argument("--explain-config", action="store_true", help="Details the capabilities and uses of a config file")
@@ -158,12 +158,12 @@ def process(src, dest) -> bool:
 
 
 def alt_process(type_: str, config: object) -> None:
-    """Pre or post process
+    """Pre or post process. Not run when uninstalling
 
     :param type: Either "pre" or "post"
     :param config: data of the config file
     """
-    if type_ not in config:
+    if type_ not in config or args.uninstall:
         return
 
     print(UL(f'{type_.capitalize()}-scripts:'))
