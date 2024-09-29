@@ -139,6 +139,9 @@ def process(src, dest) -> bool:
         elif src.startswith('http'):
             callback = request.urlretrieve
         else:
+            if not os.path.exists(src):
+                print(f'        {RD("Error")}: file "{src}" does not exist')
+                return False
             callback = os.symlink
             src = f"{os.getcwd()}/{src}"
         print(f"        {src} => {dest}")
