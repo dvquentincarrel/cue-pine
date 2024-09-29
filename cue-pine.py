@@ -183,9 +183,12 @@ def process_installation(config: object):
         if not (os.path.exists(dir) or args.uninstall or args.dry_run):
             os.makedirs(dir)
 
+        file: str
         for file in content.get('files', []):
             if content.get('strip_ext'):
                 final_file = file.rsplit('.', 1)[0]
+            elif '/' in file: # Most likely an URL, we only want the last part
+                final_file = file.rpartition('/')[-1]
             else:
                 final_file = file
 
