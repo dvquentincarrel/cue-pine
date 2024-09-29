@@ -33,8 +33,9 @@ parser = argparse.ArgumentParser(
     description="(un)install the files",
     epilog="Just run the script to install the files.\nAdd the '-u' flag to uninstall the files instead.",
 )
-parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.0")
+parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.1")
 parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstalls the files instead")
+parser.add_argument("-d", "--dry-run", action="store_true", help="Shows what would be done, without actually doing it")
 parser.add_argument("--explain-config", action="store_true", help="Details the capabilities and uses of a config file")
 parser.add_argument("--config-name", default="install.json", help="Name of the config files. ('install.json' by default)")
 parser.add_argument("--strict-pre", action="store_true", help="Abort installation if any of the pre scripts produce an error")
@@ -134,7 +135,8 @@ def process_config_file(file_path: str, cwd='.') -> None:
         done_something = False
         if exists and args.uninstall:
             print(f"        {dest}")
-            os.remove(dest)
+            if not args.dry_run:
+                os.remove(dest)
             done_something = True
         elif not (exists or args.uninstall):
             done_something = True
@@ -146,7 +148,8 @@ def process_config_file(file_path: str, cwd='.') -> None:
                 callback = os.symlink
                 src = f"{os.getcwd()}/{src}"
             print(f"        {src} => {dest}")
-            callback(f"{src}", dest)
+            if not args.dry_run:
+                callback(f"{src}", dest)
         return done_something
 
     # Pre-processing
@@ -154,10 +157,11 @@ def process_config_file(file_path: str, cwd='.') -> None:
         print(UL('Pre-scripts:'))
         for i, command in enumerate(config['pre']):
             print(f'    running pre script #{i}')
-            e_code = subprocess.call(command, shell=True)
-            if args.strict_pre and e_code:
-                print(f"\n{RD('Error')}: exit code '{YL(e_code)}' was produced by the command '{SCY(command)}'", file=sys.stderr)
-                exit(1)
+            if not args.dry_run:
+                e_code = subprocess.call(command, shell=True)
+                if args.strict_pre and e_code:
+                    print(f"\n{RD('Error')}: exit code '{YL(e_code)}' was produced by the command '{SCY(command)}'", file=sys.stderr)
+                    exit(1)
         print()
 
     # Either create or delete symlinks for the files given in the config
@@ -191,7 +195,8 @@ def process_config_file(file_path: str, cwd='.') -> None:
         print(UL('Post-scripts:'))
         for i, command in enumerate(config['post']):
             print(f'    running post script #{i}')
-            e_code = subprocess.call(command, shell=True)
+            if not args.dry_run:
+                e_code = subprocess.call(command, shell=True)
         print()
 
     os.chdir(original_pos)
