@@ -33,7 +33,7 @@ parser = argparse.ArgumentParser(
     description="(un)install the files",
     epilog="Just run the script to install the files.\nAdd the '-u' flag to uninstall the files instead.",
 )
-parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.1")
+parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.1.1")
 parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstalls the files instead")
 parser.add_argument("-d", "--dry-run", action="store_true", help="Shows what would be done, without actually doing it")
 parser.add_argument("--explain-config", action="store_true", help="Details the capabilities and uses of a config file")
@@ -126,6 +126,13 @@ def process(src, dest) -> bool:
     :return: True if something was done, False otherwise
     """
     exists = os.path.exists(dest)
+    if not exists:
+        try:
+            # Broken symlinks are flagged as non-existant, but still cause issues
+            os.remove(dest) 
+        except FileNotFoundError:
+            pass
+
     done_something = False
     if exists and args.uninstall:
         print(f"        {dest}")
