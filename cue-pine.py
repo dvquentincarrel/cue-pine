@@ -196,18 +196,16 @@ def process_config_file(file_path: str, cwd='.') -> None:
 
     os.chdir(original_pos)
 
-process_config_file(args.config_name, '.')
+# Process config files found at cwd and in sub-directories
+for cwd, subdirs, files in os.walk('.'):
+    # Prune unwanted dirs
+    if subdirs:
+        for undesirable in EXCLUDED_DIRS:
+            if undesirable in subdirs:
+                subdirs.remove(undesirable)
 
-# Process config files found in sub-directories
-if not args.no_sublevel:
-    for cwd, subdirs, files in os.walk('.'):
-        # Prune unwanted dirs
-        if subdirs:
-            for undesirable in EXCLUDED_DIRS:
-                if undesirable in subdirs:
-                    subdirs.remove(undesirable)
-        if cwd == '.': # Already processed
-            continue
+    if args.config_name in files:
+        process_config_file(args.config_name, cwd)
 
-        if args.config_name in files:
-            process_config_file(args.config_name, cwd)
+    if args.no_sublevel:
+        break
