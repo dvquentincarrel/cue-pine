@@ -90,7 +90,7 @@ if args.explain_config:
     exit(0)
 
 
-def check_dependencies(config: object) -> None:
+def check_dependencies(config: object) -> bool:
     """If trying to install, ensures all dependencies are found on the system,
     abort the execution otherwise
     If only checking dependencies, don't abort the execution if some are missing
@@ -99,7 +99,7 @@ def check_dependencies(config: object) -> None:
     """
     dependencies = config.get("dependencies")
     if not dependencies:
-        return
+        return True
 
     all_deps_found = True
     print(UL("Dependencies check:"))
@@ -112,11 +112,10 @@ def check_dependencies(config: object) -> None:
             all_deps_found = False
 
     print() # Newline
-    if args.check_dependencies:
-        return
-    elif not all_deps_found:
+    if not (all_deps_found or args.check_dependencies):
         print("Not all dependencies met. Aborting.")
-        exit(1)
+
+    return all_deps_found
 
 
 def process(src, dest) -> bool:
@@ -229,10 +228,11 @@ def process_config_file(file_path: str, cwd='.') -> None:
     with open(file_path, "r") as cfg_file:
         config = json.load(cfg_file)
 
+    all_deps = True
     if not args.uninstall:
-        check_dependencies(config)
+        all_deps = check_dependencies(config)
 
-    if not args.check_dependencies:
+    if all_deps and not args.check_dependencies:
         # Pre-processing, processing, post-processing
         alt_process('pre', config)
         process_installation(config)
