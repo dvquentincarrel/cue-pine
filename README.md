@@ -4,6 +4,11 @@ Because at some point, after a certain number of repos, having a standardized in
 Because doing it in bash was hell. Json is notoriously awful to write by hand, this is most likely gonna
 end up as something else, most likely as actual python code or yaml. Or even all of the above at once.
 
+# Installation
+Run `./cue-pine.sh` the first time.
+
+You can just run `cue-pine` afterwards
+
 # How
 Run the script with the `--explain-config` flag to get an explanation of what each
 key of the config file does.
