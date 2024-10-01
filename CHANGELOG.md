@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 1.2.1
+- Add -t/--template flag to output a template ready to be used
+
 ## 1.2.0
 - Add support for yaml, toml and python config files
 - Tolerates missing dependencies in sublevels

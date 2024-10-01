@@ -18,6 +18,7 @@ try:
 except ImportError:
     pass
 
+
 # Directories to prune if subdirectories are crawled for config files
 EXCLUDED_DIRS=['.git', 'node_modules', 'venv']
 FORCE_COLOR = False
@@ -44,8 +45,9 @@ parser = argparse.ArgumentParser(
     description="(un)install the files",
     epilog="Just run the script to install the files.\nAdd the '-u' flag to uninstall the files instead.",
 )
-parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.2.0")
+parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.2.1")
 parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstalls the files instead")
+parser.add_argument("-t", "--template", action="store_true", help="Prints a template and exits")
 parser.add_argument("-d", "--dry-run", action="store_true", help="Shows what would be done, without actually doing it")
 parser.add_argument("--explain-config", action="store_true", help="Details the capabilities and uses of a config file")
 parser.add_argument("--config-name", default=f"install.{FILE_EXT}", help=f"Name of the config files. ('install.{FILE_EXT}' by default)")
@@ -53,51 +55,85 @@ parser.add_argument("--strict-pre", action="store_true", help="Abort installatio
 parser.add_argument("--no-sublevel", action="store_true", help="Don't attempt to process config files found in sub-directories")
 parser.add_argument("-c", "--check-dependencies", action="store_true", help="Only check for dependencies and exit")
 args = parser.parse_args()
-if args.explain_config:
-    print('\n'.join(
-        [
-            f"This program requires a config file named 'install.{FILE_EXT}' inside the current working directory.",
-            "This config file describes the actions to do.",
-            "",
-            "The config file has 4 main keys:",
-            "1) 'pre', a list of strings executed in a shell, before starting the installation",
-            "2) 'post', a list of strings executed in a shell, after the installation is done",
-            "3) 'dependencies', the names of the executables your software relies on (list of strings)",
-            "4) 'installation', What to install and how.",
-            "",
-            "The value of installation is a dict. Its keys can be any string, usually used to separate",
-            "different kind of files ('config' and 'scripts', for example.)",
-            "Installation's entries are themselves dicts, with the following keys:",
-            "1) 'files', the path to the files to install (list of str)",
-            "2) 'dir', the path to the directory where the files are to be put.",
-            "   The path to the directory is fully created if it doesn't exist.",
-            "   Any occurence of '$HOME' in the paths is replaced by the path to the",
-            "   user's home directory.",
-            "3) 'renamed_files', (instead of files), which is a list of dicts with a 'src' and 'dest' key.",
-            "  The 'src' key is the path to the file to install, and 'dest' is its new name inside of the",
-            "  directory given in 'dir'.",
-            "4) 'strip_ext', a boolean that if true, causes file extensions to be stripped from 'files' entry.",
-            "",
-            UL("Example:"),
-            '{',
-            '  "dependencies": ["python", "foo", "foobar"],',
-            '  "pre": ["foo --bar", "foo --baz"],',
-            '  "post": ["foobar", "foobar --baz", "notify-send done", "cd subdir; python install.py"],',
-            '  "installation": {',
-            '    "config": {',
-            '      "dir": "$HOME/.config/app_conf",',
-            '      "files": ["cfg_file_1", "cfg_file_2"]',
-            '    },',
-            '    "script": {',
-            '      "dir": "$HOME/.local/bin",',
-            '      "renamed_files": [{',
-            '        "src": "install.py",',
-            '        "dest": "pyinstaller"',
-            '      }]',
-            '    }',
-            '  }',
-            '}',
-    ]), file=sys.stderr)
+
+FILE_EXT = args.config_name.rpartition('.')[-1]
+
+# Prepare and print template, ± the explanation
+if args.template or args.explain_config:
+    TEMPLATE={
+        'dependencies': ['ssh', 'ed', 'vim'],
+        'installation': {
+            'config': {
+                'dir': '$HOME/.config/mydir',
+                'files': ['file_1.py', 'file_2.py'],
+            },
+            'scripts': {
+                'dir': '$HOME/.local/bin',
+                'strip_ext': True,
+                'files': ['script.sh'],
+            },
+            'setup': {
+                'dir': '$HOME/.config/bash/setup',
+                'renamed_files': [
+                    {'src': 'my_aliases.sh', 'dest': '999_cue-pine_aliases.sh'},
+                    {'src': 'autocompletion.bash', 'dest': '999_cue-pine_autocomp.bash'},
+                ],
+            }
+        }
+    }
+    # We want empty values for the template
+    if args.template:
+        TEMPLATE['dependencies'] = ['']
+        for key in ['config', 'scripts', 'setup']: 
+            entry = TEMPLATE['installation'][key]
+            if 'files' in entry:
+                entry['files'] = ['']
+            elif 'renamed_files' in entry:
+                entry['renamed_files'] = [{'src': '', 'dest': ''}]
+
+    # Find proper representation
+    if FILE_EXT == 'json':
+        template = json.dumps(TEMPLATE, indent=4)
+    elif FILE_EXT == 'yaml':
+        template = yaml.dump(TEMPLATE)
+    elif FILE_EXT == 'toml':
+        raise ValueError("tomllib can't write toml files")
+    elif FILE_EXT == 'py':
+        import pprint
+        template = pprint.pformat(TEMPLATE)
+    else:
+        raise ValueError(f'Filetype not supported: "{FILE_EXT}"')
+
+    if args.template:
+        print(template)
+    elif args.explain_config:
+        print('\n'.join(
+            [
+                f"This program requires a config file named 'install.{FILE_EXT}' inside the current working directory.",
+                "This config file describes the actions to do.",
+                "",
+                "The config file has 4 main keys:",
+                "1) 'pre', a list of strings executed in a shell, before starting the installation",
+                "2) 'post', a list of strings executed in a shell, after the installation is done",
+                "3) 'dependencies', the names of the executables your software relies on (list of strings)",
+                "4) 'installation', What to install and how.",
+                "",
+                "The value of installation is a dict. Its keys can be any string, usually used to separate",
+                "different kind of files ('config' and 'scripts', for example.)",
+                "Installation's entries are themselves dicts, with the following keys:",
+                "1) 'files', the path to the files to install (list of str)",
+                "2) 'dir', the path to the directory where the files are to be put.",
+                "   The path to the directory is fully created if it doesn't exist.",
+                "   Any occurence of '$HOME' in the paths is replaced by the path to the",
+                "   user's home directory.",
+                "3) 'renamed_files', (instead of files), which is a list of dicts with a 'src' and 'dest' key.",
+                "  The 'src' key is the path to the file to install, and 'dest' is its new name inside of the",
+                "  directory given in 'dir'.",
+                "4) 'strip_ext', a boolean that if true, causes file extensions to be stripped from 'files' entry.",
+                "",
+                UL("Example:"),
+                template,
+        ]), file=sys.stderr)
     exit(0)
 
 
