@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.2.0
+- Add support for yaml, toml and python config files
+- Tolerates missing dependencies in sublevels
+
 ## 1.1.2
 - Don't run pre/post when uninstalling
 - Don't exit after dependency check, allows check of dependencies in sublevels

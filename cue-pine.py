@@ -1,11 +1,22 @@
 #!/bin/env python
-import json
 import argparse
 import os
 import sys
 import shutil
 import subprocess
 from urllib import request
+import json
+FILE_EXT='json'
+try:
+    import tomllib
+    FILE_EXT='toml'
+except ImportError:
+    pass
+try:
+    import yaml
+    FILE_EXT='yaml'
+except ImportError:
+    pass
 
 # Directories to prune if subdirectories are crawled for config files
 EXCLUDED_DIRS=['.git', 'node_modules', 'venv']
@@ -33,11 +44,11 @@ parser = argparse.ArgumentParser(
     description="(un)install the files",
     epilog="Just run the script to install the files.\nAdd the '-u' flag to uninstall the files instead.",
 )
-parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.1.2")
+parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.2.0")
 parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstalls the files instead")
 parser.add_argument("-d", "--dry-run", action="store_true", help="Shows what would be done, without actually doing it")
 parser.add_argument("--explain-config", action="store_true", help="Details the capabilities and uses of a config file")
-parser.add_argument("--config-name", default="install.json", help="Name of the config files. ('install.json' by default)")
+parser.add_argument("--config-name", default=f"install.{FILE_EXT}", help=f"Name of the config files. ('install.{FILE_EXT}' by default)")
 parser.add_argument("--strict-pre", action="store_true", help="Abort installation if any of the pre scripts produce an error")
 parser.add_argument("--no-sublevel", action="store_true", help="Don't attempt to process config files found in sub-directories")
 parser.add_argument("-c", "--check-dependencies", action="store_true", help="Only check for dependencies and exit")
@@ -45,7 +56,7 @@ args = parser.parse_args()
 if args.explain_config:
     print('\n'.join(
         [
-            "This program requires a config file named 'install.json' inside the current working directory.",
+            f"This program requires a config file named 'install.{FILE_EXT}' inside the current working directory.",
             "This config file describes the actions to do.",
             "",
             "The config file has 4 main keys:",
@@ -226,7 +237,14 @@ def process_config_file(file_path: str, cwd='.') -> None:
     print("{0} {2} {1}".format(lhs, rhs, SCY(f"{cwd}/{file_path}")))
 
     with open(file_path, "r") as cfg_file:
-        config = json.load(cfg_file)
+        if file_path.endswith('.json'):
+            config = json.load(cfg_file)
+        elif file_path.endswith('.yaml'):
+            config = yaml.full_load(cfg_file)
+        elif file_path.endswith('.toml'):
+            config = tomllib.loads(cfg_file)
+        elif file_path.endswith('.py'):
+            config = eval(cfg_file.read())
 
     all_deps = True
     if not args.uninstall:
