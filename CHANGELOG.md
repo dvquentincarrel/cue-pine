@@ -1,4 +1,12 @@
 # CHANGELOG
+## 1.4
+- Add conditional install
+- Add optional dependencies check
+- Better yaml template order
+
+## 1.3
+- Add installation instructions
+- Change flags name
 
 ## 1.2.1
 - Add -t/--template flag to output a template ready to be used

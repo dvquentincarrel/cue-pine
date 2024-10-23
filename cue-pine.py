@@ -45,7 +45,7 @@ parser = argparse.ArgumentParser(
     description="(un)install the files",
     epilog="Just run the script to install the files.\nAdd the '-u' flag to uninstall the files instead.",
 )
-parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.2.1")
+parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.4")
 parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstalls the files instead")
 parser.add_argument("-t", "--template", action="store_true", help="Prints a template and exits")
 parser.add_argument("-d", "--dry-run", action="store_true", help="Shows what would be done, without actually doing it")
@@ -113,33 +113,15 @@ if args.template or args.explain_config:
     if args.template:
         print(template)
     elif args.explain_config:
-        print('\n'.join(
-            [
-                f"This program requires a config file named 'install.{FILE_EXT}' inside the current working directory.",
-                "This config file describes the actions to do.",
-                "",
-                "The config file has 4 main keys:",
-                "1) 'pre', a list of strings executed in a shell, before starting the installation",
-                "2) 'post', a list of strings executed in a shell, after the installation is done",
-                "3) 'dependencies', the names of the executables your software relies on (list of strings)",
-                "4) 'installation', What to install and how.",
-                "",
-                "The value of installation is a dict. Its keys can be any string, usually used to separate",
-                "different kind of files ('config' and 'scripts', for example.)",
-                "Installation's entries are themselves dicts, with the following keys:",
-                "1) 'files', the path to the files to install (list of str)",
-                "2) 'dir', the path to the directory where the files are to be put.",
-                "   The path to the directory is fully created if it doesn't exist.",
-                "   Any occurence of '$HOME' in the paths is replaced by the path to the",
-                "   user's home directory.",
-                "3) 'renamed_files', (instead of files), which is a list of dicts with a 'src' and 'dest' key.",
-                "  The 'src' key is the path to the file to install, and 'dest' is its new name inside of the",
-                "  directory given in 'dir'.",
-                "4) 'strip_ext', a boolean that if true, causes file extensions to be stripped from 'files' entry.",
-                "",
-                UL("Example:"),
-                template,
-        ]), file=sys.stderr)
+        help_path = f"{os.path.dirname(sys.argv[0])}/HELP.md"
+        print(help_path)
+
+        if shutil.which('bat'):
+            subprocess.call(['bat', help_path])
+        elif shutil.which('batcat'):
+            subprocess.call(['batcat', help_path])
+        else:
+            subprocess.call(['cat', help_path])
     exit(0)
 
 
