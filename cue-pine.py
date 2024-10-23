@@ -50,10 +50,10 @@ parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstalls t
 parser.add_argument("-t", "--template", action="store_true", help="Prints a template and exits")
 parser.add_argument("-d", "--dry-run", action="store_true", help="Shows what would be done, without actually doing it")
 parser.add_argument("--explain-config", action="store_true", help="Details the capabilities and uses of a config file")
-parser.add_argument("--config-name", default=f"install.{FILE_EXT}", help=f"Name of the config files. ('install.{FILE_EXT}' by default)")
+parser.add_argument("-c", "--config-name", default=f"install.{FILE_EXT}", help=f"Name of the config files. ('install.{FILE_EXT}' by default)")
 parser.add_argument("--strict-pre", action="store_true", help="Abort installation if any of the pre scripts produce an error")
 parser.add_argument("--no-sublevel", action="store_true", help="Don't attempt to process config files found in sub-directories")
-parser.add_argument("-c", "--check-dependencies", action="store_true", help="Only check for dependencies and exit")
+parser.add_argument("-C", "--check-dependencies", action="store_true", help="Only check for dependencies and exit")
 args = parser.parse_args()
 
 FILE_EXT = args.config_name.rpartition('.')[-1]
