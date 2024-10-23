@@ -62,6 +62,7 @@ FILE_EXT = args.config_name.rpartition('.')[-1]
 if args.template or args.explain_config:
     TEMPLATE={
         'dependencies': ['ssh', 'ed', 'vim'],
+        'opt_dependencies': ['bat', 'eza'],
         'installation': {
             'config': {
                 'dir': '$HOME/.config/mydir',
@@ -144,23 +145,33 @@ def check_dependencies(config: object) -> bool:
 
     :param config: data of the config file
     """
-    dependencies = config.get("dependencies")
-    if not dependencies:
+    dependencies = config.get("dependencies", [])
+    opt_dependencies = config.get("opt_dependencies", [])
+    if not (dependencies or opt_dependencies):
         return True
 
     all_deps_found = True
-    print(UL("Dependencies check:"))
-    for dependency in dependencies:
-        print(f"    {dependency} ", end="")
-        if shutil.which(dependency):
-            print(GR("OK"))
-        else:
-            print(RD("not found"))
-            all_deps_found = False
+    if dependencies:
+        print(UL("Dependencies check:"))
+        for dependency in dependencies:
+            print(f"    {dependency} ", end="")
+            if shutil.which(dependency):
+                print(GR("OK"))
+            else:
+                print(RD("not found"))
+                all_deps_found = False
+    if opt_dependencies:
+        print(UL("Optional dependencies check:"))
+        for opt_dep in opt_dependencies:
+            print(f"    {opt_dep} ", end="")
+            if shutil.which(opt_dep):
+                print(GR("OK"))
+            else:
+                print(RD("not found"))
 
     print() # Newline
     if not (all_deps_found or args.check_dependencies):
-        print("Not all dependencies met. Aborting.")
+        print("Not all mandatory dependencies met. Aborting.")
 
     return all_deps_found
 
