@@ -79,6 +79,11 @@ if args.template or args.explain_config:
                     {'src': 'my_aliases.sh', 'dest': '999_cue-pine_aliases.sh'},
                     {'src': 'autocompletion.bash', 'dest': '999_cue-pine_autocomp.bash'},
                 ],
+            },
+            'non_root': {
+                'condition': '[[ $UID != 0 ]]',
+                'dir': './user',
+                'files': ['file_1.py', 'file_2.py'],
             }
         }
     }
@@ -243,9 +248,18 @@ def process_installation(config: object):
     action = "Uninstallation:" if args.uninstall else "Installation:"
     print(UL(action))
     for name, content in config['installation'].items():
+        print(f"    {BD(name)}:")
+
+        condition = content.get('condition')
+        if condition:
+            # return code != 0
+            r_code = subprocess.call(condition, shell=True)
+            if r_code:
+                print(f"        {YL("Condition not met")} (return code {r_code})")
+                continue
+
         dir = (content['dir'].replace('$HOME', os.getenv('HOME')))
         done_something = False
-        print(f"    {BD(name)}:")
 
         if not (os.path.exists(dir) or args.uninstall or args.dry_run):
             os.makedirs(dir)
