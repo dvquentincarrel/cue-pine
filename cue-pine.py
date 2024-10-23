@@ -95,7 +95,7 @@ if args.template or args.explain_config:
     if FILE_EXT == 'json':
         template = json.dumps(TEMPLATE, indent=4)
     elif FILE_EXT == 'yaml':
-        template = yaml.dump(TEMPLATE)
+        template = yaml.dump(TEMPLATE, sort_keys=False)
     elif FILE_EXT == 'toml':
         raise ValueError("tomllib can't write toml files")
     elif FILE_EXT == 'py':
