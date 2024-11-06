@@ -169,6 +169,9 @@ def process(src, dest) -> bool:
 
     :return: True if something was done, False otherwise
     """
+    if src.endswith('.git') and dest.endswith('.git'):
+        dest = dest[:-4]
+
     exists = os.path.exists(dest)
     if not exists:
         try:
