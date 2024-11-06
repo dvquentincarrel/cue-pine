@@ -184,7 +184,11 @@ def process(src, dest) -> bool:
     if exists and args.uninstall:
         print(f"        {dest}")
         if not args.dry_run:
-            os.remove(dest)
+            if os.path.isdir(dest):
+                callback=shutil.rmtree
+            else:
+                callback=os.remove
+            callback(dest)
         done_something = True
     elif not (exists or args.uninstall):
         done_something = True
