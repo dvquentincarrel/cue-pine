@@ -237,7 +237,7 @@ def process_installation(config: object):
             # return code != 0
             r_code = subprocess.call(condition, shell=True)
             if r_code:
-                print(f"        {YL("Condition not met")} (return code {r_code})")
+                print(f"        {YL('Condition not met')} (return code {r_code})")
                 continue
 
         dir = (content['dir'].replace('$HOME', os.getenv('HOME')))
