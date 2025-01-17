@@ -204,6 +204,8 @@ def process(src, dest) -> bool:
             src = f"{os.getcwd()}/{src}"
         print(f"        {src} => {dest}")
         if not args.dry_run:
+            if not os.path.exists(os.path.dirname(dest)):
+                os.makedirs(os.path.dirname(dest))
             callback(f"{src}", dest)
     return done_something
 
@@ -255,14 +257,13 @@ def process_installation(config: object):
 
         file: str
         for file in content.get('files', []):
+            original_file = file
             if content.get('strip_ext'):
-                final_file = file.rsplit('.', 1)[0]
-            elif '/' in file: # Most likely an URL, we only want the last part
-                final_file = file.rpartition('/')[-1]
-            else:
-                final_file = file
+                file = file.rsplit('.', 1)[0]
+            if '/' in file: # Most likely an URL or inside a dir, we only want the last part
+                file = file.rpartition('/')[-1]
 
-            done_something = process(f"{file}", f"{dir}/{final_file}") or done_something
+            done_something = process(f"{original_file}", f"{dir}/{file}") or done_something
 
         for mapping in content.get('renamed_files', []):
             done_something = process(f"{mapping['src']}", f"{dir}/{mapping['dest']}") or done_something
