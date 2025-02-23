@@ -1,4 +1,9 @@
 # CHANGELOG
+## 1.5
+- Handle removal of directories
+- Create intermediary directories as necessary
+- Fix setup script
+
 ## 1.4
 - Add conditional install
 - Add optional dependencies check

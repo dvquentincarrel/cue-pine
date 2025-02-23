@@ -45,7 +45,7 @@ parser = argparse.ArgumentParser(
     description="(un)install the files",
     epilog="Just run the script to install the files.\nAdd the '-u' flag to uninstall the files instead.",
 )
-parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.4")
+parser.add_argument("-V", "--version", action="version", version="%(prog)s 1.5")
 parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstalls the files instead")
 parser.add_argument("-t", "--template", action="store_true", help="Prints a template and exits")
 parser.add_argument("-d", "--dry-run", action="store_true", help="Shows what would be done, without actually doing it")
